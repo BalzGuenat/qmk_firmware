@@ -928,6 +928,12 @@ void rgblight_task(void) {
             effect_func   = (effect_func_t)rgblight_effect_twinkle;
         }
 #    endif
+#    ifdef RGBLIGHT_EFFECT_WAVE
+        else if (rgblight_status.base_mode == RGBLIGHT_MODE_WAVE) {
+            interval_time = RGBLIGHT_EFFECT_WAVE_INTERVAL;
+            effect_func   = (effect_func_t)rgblight_effect_wave;
+        }
+#    endif
         if (animation_status.restart) {
             animation_status.restart    = false;
             animation_status.last_timer = timer_read() - interval_time - 1;
@@ -1266,4 +1272,38 @@ void rgblight_effect_twinkle(animation_status_t *anim) {
 
     rgblight_set();
 }
+#endif
+
+#ifdef RGBLIGHT_EFFECT_WAVE
+
+void rgblight_effect_wave(animation_status_t *anim) {
+    uint8_t       i, ampli;
+
+    // Set all the LEDs to 0
+    for (i = 0; i < 16; i++) {
+        led[i].r = 0;
+        led[i].g = 0;
+        led[i].b = 0;
+    }
+
+    // calculate the "amplitude" of the wave
+    if (anim->pos < 8) {
+        ampli = anim->pos;
+    } else {
+        ampli = 16 - anim->pos;
+    }
+
+    // set values for leds
+    for (i = 0; i < ampli; i++) {
+        sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[i]);
+        sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[15-i]);
+    }
+
+    // set leds
+    rgblight_set();
+
+    // advance animation
+    anim->pos = (anim->pos + 1) % 16;
+}
+
 #endif

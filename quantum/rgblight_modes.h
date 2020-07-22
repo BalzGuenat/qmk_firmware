@@ -61,6 +61,9 @@ _RGBM_TMP_DYNAMIC(twinkle_40, TWINKLE)
 _RGBM_TMP_DYNAMIC(twinkle_41, TWINKLE)
 _RGBM_TMP_DYNAMIC(TWINKLE_end, TWINKLE)
 #    endif
+#    ifdef RGBLIGHT_EFFECT_WAVE
+_RGBM_SINGLE_DYNAMIC(WAVE)
+#    endif
 ////  Add a new mode here.
 // #ifdef RGBLIGHT_EFFECT_<name>
 //    _RGBM_<SINGLE|MULTI>_<STATIC|DYNAMIC>( <name> )
