@@ -160,7 +160,7 @@ enum RGBLIGHT_EFFECT_MODE {
 #    endif
 
 #    ifndef RGBLIGHT_EFFECT_WAVE_INTERVAL
-#        define RGBLIGHT_EFFECT_WAVE_INTERVAL 10
+#        define RGBLIGHT_EFFECT_WAVE_INTERVAL 15
 #    endif
 
 #    ifndef RGBLIGHT_HUE_STEP

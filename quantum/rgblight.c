@@ -1314,7 +1314,7 @@ const uint8_t rgblight_effect_wave_table[] PROGMEM = {
 static const int wave_table_scale = 256 / sizeof(rgblight_effect_wave_table);
 
 void rgblight_effect_wave(animation_status_t *anim) {
-    uint8_t       i, ampli, val, last, fade;
+    uint8_t       i, ampli, val, last;
 
     // Set all the LEDs to 0
     for (i = 0; i < 16; i++) {
@@ -1323,33 +1323,30 @@ void rgblight_effect_wave(animation_status_t *anim) {
         led[i].b = 0;
     }
 
-    if (anim->pos < 100) {
-        fade = 255;
-    } else {
-        fade = 255 - ((uint16_t) (anim->pos - 100)) * 255 / 155;
-    }
-
     if (anim->pos < 128) {
         // wave comes in
         val = pgm_read_byte(&rgblight_effect_wave_table[anim->pos * 2 / wave_table_scale]);
+        // calculate the "amplitude" of the wave, i.e. column of leds
+        ampli = val / (256/8); // 32
+
+        // set values for leds
+        // below ampli are on full brightness
+        for (i = 0; i < ampli; i++) {
+            sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[i]);
+            sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[15-i]);
+        }
+        // at ampli, we dim brightness
+        last = (val % 32) * rgblight_config.val / 32; // can reach max?
+        sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[ampli]);
+        sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[15-ampli]);
     } else {
         // wave goes out / fades
         val = pgm_read_byte(&rgblight_effect_wave_table[(255 - anim->pos) * 2 / wave_table_scale]);
+        for (i = 0; i < 8; i++) {
+            sethsv(rgblight_config.hue, rgblight_config.sat, val, (LED_TYPE *)&led[i]);
+            sethsv(rgblight_config.hue, rgblight_config.sat, val, (LED_TYPE *)&led[15-i]);
+        }
     }
-
-    // calculate the "amplitude" of the wave, i.e. column of leds
-    ampli = val / (256/8); // 32
-
-    // set values for leds
-    // below ampli are on full brightness
-    for (i = 0; i < ampli; i++) {
-        sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val * fade / 255, (LED_TYPE *)&led[i]);
-        sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val * fade / 255, (LED_TYPE *)&led[15-i]);
-    }
-    // at ampli, we dim brightness
-    last = (val % 32) * rgblight_config.val / 32; // can reach max?
-    sethsv(rgblight_config.hue, rgblight_config.sat, last * fade / 255, (LED_TYPE *)&led[ampli]);
-    sethsv(rgblight_config.hue, rgblight_config.sat, last * fade / 255, (LED_TYPE *)&led[15-ampli]);
 
     // set leds
     rgblight_set();
