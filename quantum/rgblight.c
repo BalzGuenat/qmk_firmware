@@ -1334,7 +1334,7 @@ void rgblight_effect_wave(animation_status_t *anim) {
         sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[15-i]);
     }
     // at ampli, we dim brightness
-    last = (val % 32) * 8 * rgblight_config.val;
+    last = (val % 32) * rgblight_config.val / 32; // can reach max?
     sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[ampli]);
     sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[15-ampli]);
 
