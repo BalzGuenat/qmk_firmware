@@ -1276,10 +1276,42 @@ void rgblight_effect_twinkle(animation_status_t *anim) {
 
 #ifdef RGBLIGHT_EFFECT_WAVE
 
-#ifndef RGBLIGHT_BREATHE_TABLE_SIZE
-#    define RGBLIGHT_BREATHE_TABLE_SIZE 64  // 256 or 128 or 64
-#endif
-#include <rgblight_breathe_table.h>
+const uint8_t rgblight_effect_wave_table[] PROGMEM = {
+0x00,
+0x0c,
+0x19,
+0x25,
+0x31,
+0x3e,
+0x4a,
+0x56,
+0x61,
+0x6d,
+0x78,
+0x83,
+0x8e,
+0x98,
+0xa2,
+0xab,
+0xb5,
+0xbd,
+0xc5,
+0xcd,
+0xd4,
+0xdb,
+0xe1,
+0xe7,
+0xec,
+0xf1,
+0xf4,
+0xf8,
+0xfb,
+0xfd,
+0xfe,
+0xff
+};
+
+static const int wave_table_scale = 256 / sizeof(rgblight_effect_wave_table);
 
 void rgblight_effect_wave(animation_status_t *anim) {
     uint8_t       i, ampli, val;
@@ -1291,8 +1323,8 @@ void rgblight_effect_wave(animation_status_t *anim) {
         led[i].b = 0;
     }
 
-    val = pgm_read_byte(&rgblight_effect_breathe_table[anim->pos / table_scale]);
-    // calculate the "amplitude" of the wave
+    val = pgm_read_byte(&rgblight_effect_wave_table[anim->pos / wave_table_scale]);
+    // calculate the "amplitude" of the wave, i.e. column of leds
     ampli = val / (256/8);
 
     // set values for leds
