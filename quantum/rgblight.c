@@ -1323,21 +1323,30 @@ void rgblight_effect_wave(animation_status_t *anim) {
         led[i].b = 0;
     }
 
-    val = pgm_read_byte(&rgblight_effect_wave_table[anim->pos / wave_table_scale]);
-    // calculate the "amplitude" of the wave, i.e. column of leds
-    ampli = val / (256/8); // 32
+    if (anim->pos < 128) {
+        // wave comes in
+        val = pgm_read_byte(&rgblight_effect_wave_table[anim->pos * 2 / wave_table_scale]);
+        // calculate the "amplitude" of the wave, i.e. column of leds
+        ampli = val / (256/8); // 32
 
-    // set values for leds
-    // below ampli are on full brightness
-    for (i = 0; i < ampli; i++) {
-        sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[i]);
-        sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[15-i]);
+        // set values for leds
+        // below ampli are on full brightness
+        for (i = 0; i < ampli; i++) {
+            sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[i]);
+            sethsv(rgblight_config.hue, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[15-i]);
+        }
+        // at ampli, we dim brightness
+        last = (val % 32) * rgblight_config.val / 32; // can reach max?
+        sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[ampli]);
+        sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[15-ampli]);
+    } else {
+        // wave goes out / fades
+        val = 2 * (255 - anim->pos);
+        for (i = 0; i < 8; i++) {
+            sethsv(rgblight_config.hue, rgblight_config.sat, val, (LED_TYPE *)&led[i]);
+            sethsv(rgblight_config.hue, rgblight_config.sat, val, (LED_TYPE *)&led[15-i]);
+        }
     }
-    // at ampli, we dim brightness
-    last = (val % 32) * rgblight_config.val / 32; // can reach max?
-    sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[ampli]);
-    sethsv(rgblight_config.hue, rgblight_config.sat, last, (LED_TYPE *)&led[15-ampli]);
-
 
     // set leds
     rgblight_set();
