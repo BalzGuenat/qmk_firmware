@@ -1276,8 +1276,13 @@ void rgblight_effect_twinkle(animation_status_t *anim) {
 
 #ifdef RGBLIGHT_EFFECT_WAVE
 
+#ifndef RGBLIGHT_BREATHE_TABLE_SIZE
+#    define RGBLIGHT_BREATHE_TABLE_SIZE 64  // 256 or 128 or 64
+#endif
+#include <rgblight_breathe_table.h>
+
 void rgblight_effect_wave(animation_status_t *anim) {
-    uint8_t       i, ampli;
+    uint8_t       i, ampli, val;
 
     // Set all the LEDs to 0
     for (i = 0; i < 16; i++) {
@@ -1286,12 +1291,9 @@ void rgblight_effect_wave(animation_status_t *anim) {
         led[i].b = 0;
     }
 
+    val = pgm_read_byte(&rgblight_effect_breathe_table[anim->pos / table_scale]);
     // calculate the "amplitude" of the wave
-    if (anim->pos < 8) {
-        ampli = anim->pos;
-    } else {
-        ampli = 16 - anim->pos;
-    }
+    ampli = val / (256/8);
 
     // set values for leds
     for (i = 0; i < ampli; i++) {
@@ -1303,7 +1305,7 @@ void rgblight_effect_wave(animation_status_t *anim) {
     rgblight_set();
 
     // advance animation
-    anim->pos = (anim->pos + 1) % 16;
+    anim->pos = anim->pos + 1;
 }
 
 #endif
