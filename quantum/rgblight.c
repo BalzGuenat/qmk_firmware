@@ -1344,12 +1344,24 @@ const uint8_t rgblight_effect_wave_table[] PROGMEM = {
 };
 
 static const int wave_table_scale = 256 / sizeof(rgblight_effect_wave_table);
+#define RGBLIGHT_EFFECT_WAVE_MAX 4
+#define RGBLIGHT_EFFECT_WAVE_CHANCE 0x10
+
+typedef struct PACKED {
+    uint8_t pos;
+    uint8_t intensity;
+} WaveState;
+
+static WaveState waves[RGBLIGHT_EFFECT_WAVE_MAX];
 
 void rgblight_effect_wave(animation_status_t *anim) {
-    uint8_t       i, ampli, val, last, hue, hue_step;
+    WaveState ws;
+    uint8_t i, max_ampli, ampli, val, last;
+    // uint8_t       i, ampli, val, last, hue, hue_step;
+    // uint8_t       lights[16];
 
-    hue = rgblight_config.hue;
-    hue_step = 4;
+    // hue = rgblight_config.hue;
+    // hue_step = 4;
 
     // Set all the LEDs to 0
     for (i = 0; i < 16; i++) {
@@ -1358,32 +1370,62 @@ void rgblight_effect_wave(animation_status_t *anim) {
         led[i].b = 0;
     }
 
-    if (anim->pos < 128) {
-        // wave comes in
-        val = pgm_read_byte(&rgblight_effect_wave_table[anim->pos * 2 / wave_table_scale]);
-        // calculate the "amplitude" of the wave, i.e. column of leds
-        ampli = val / (256/8); // 32
-
-        // set values for leds
-        // below ampli are on max brightness
-        for (i = 0; i < ampli; i++) {
-            sethsv(hue + i * hue_step, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[i]);
-            sethsv(hue + i * hue_step, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[15-i]);
-        }
-        // at ampli, we dim brightness, scaled by max
-        last = (val % 32) * rgblight_config.val / 32;
-        sethsv(hue + ampli * hue_step, rgblight_config.sat, last, (LED_TYPE *)&led[ampli]);
-        sethsv(hue + ampli * hue_step, rgblight_config.sat, last, (LED_TYPE *)&led[15-ampli]);
-    } else {
-        // wave goes out / fades
-        val = pgm_read_byte(&rgblight_effect_wave_table[(255 - anim->pos) * 2 / wave_table_scale]);
-        // scale by max
-        val = val * rgblight_config.val / 255;
-        for (i = 0; i < 8; i++) {
-            sethsv(hue + i * hue_step, rgblight_config.sat, val, (LED_TYPE *)&led[i]);
-            sethsv(hue + i * hue_step, rgblight_config.sat, val, (LED_TYPE *)&led[15-i]);
+    for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
+        if (waves[i].intensity == 0) {
+            if (rand() <= RGBLIGHT_EFFECT_WAVE_CHANCE) {
+                waves[i].pos = 1;
+                waves[i].intensity = rand();
+                break;
+            }
         }
     }
+
+
+    for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
+        ws = waves[i];
+        if (ws.pos == 0) {
+            continue;
+        }
+        // maximum amplitude (led column) this wave will reach
+        // [0,7]
+        max_ampli = ws.intensity / (256/8);
+        // [0,255]
+        val = pgm_read_byte(&rgblight_effect_wave_table[ws.pos / wave_table_scale]);
+        // [0,6]
+        ampli = val * max_ampli / 256;
+        last = val % (256 / max_ampli);
+        led[ampli].r = 255;
+        led[ampli].g = 255;
+        led[ampli].b = 255;
+        ws.pos++;
+    }
+
+    // if (anim->pos < 128) {
+    //     // wave comes in
+    //     val = pgm_read_byte(&rgblight_effect_wave_table[anim->pos * 2 / wave_table_scale]);
+    //     // calculate the "amplitude" of the wave, i.e. column of leds
+    //     ampli = val * 8 / 256;
+
+    //     // set values for leds
+    //     // below ampli are on max brightness
+    //     for (i = 0; i < ampli; i++) {
+    //         sethsv(hue + i * hue_step, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[i]);
+    //         sethsv(hue + i * hue_step, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[15-i]);
+    //     }
+    //     // at ampli, we dim brightness, scaled by max
+    //     last = (val % 32) * rgblight_config.val / 32;
+    //     sethsv(hue + ampli * hue_step, rgblight_config.sat, last, (LED_TYPE *)&led[ampli]);
+    //     sethsv(hue + ampli * hue_step, rgblight_config.sat, last, (LED_TYPE *)&led[15-ampli]);
+    // } else {
+    //     // wave goes out / fades
+    //     val = pgm_read_byte(&rgblight_effect_wave_table[(255 - anim->pos) * 2 / wave_table_scale]);
+    //     // scale by max
+    //     val = val * rgblight_config.val / 255;
+    //     for (i = 0; i < 8; i++) {
+    //         sethsv(hue + i * hue_step, rgblight_config.sat, val, (LED_TYPE *)&led[i]);
+    //         sethsv(hue + i * hue_step, rgblight_config.sat, val, (LED_TYPE *)&led[15-i]);
+    //     }
+    // }
 
     // set leds
     rgblight_set();
