@@ -1344,15 +1344,41 @@ const uint8_t rgblight_effect_wave_table[] PROGMEM = {
 };
 
 static const int wave_table_scale = 256 / sizeof(rgblight_effect_wave_table);
-#define RGBLIGHT_EFFECT_WAVE_MAX 4
-#define RGBLIGHT_EFFECT_WAVE_CHANCE 0x80
+#define RGBLIGHT_EFFECT_WAVE_MAX 2
+#define RGBLIGHT_EFFECT_WAVE_CHANCE 1 / 128
+#define RGBLIGHT_EFFECT_WAVE_HUE_STEP 16
 
 typedef struct PACKED {
+    // pos == 9 means wave is inactive
     uint8_t pos;
     uint8_t intensity;
 } WaveState;
 
 static WaveState waves[RGBLIGHT_EFFECT_WAVE_MAX];
+
+uint8_t max(uint8_t a, uint8_t b) {
+    return a > b ? a : b;
+}
+
+void sethsv_col(uint8_t hue, uint8_t sat, uint8_t val, uint8_t col) {
+    sethsv(hue, sat, val, (LED_TYPE *)&led[col]);
+    sethsv(hue, sat, val, (LED_TYPE *)&led[15-col]);
+}
+
+void setrgb_col(uint8_t r, uint8_t g, uint8_t b, uint8_t col) {
+    setrgb(r, g, b, (LED_TYPE *)&led[col]);
+    setrgb(r, g, b, (LED_TYPE *)&led[15-col]);
+}
+
+void add_to_col(HSV hsv, uint8_t col) {
+    RGB rgb = hsv_to_rgb(hsv);
+    // setrgb_col(rgb.r,rgb.g,rgb.b,col);
+    setrgb_col(
+        max(rgb.r, led[col].r),
+        max(rgb.g, led[col].g),
+        max(rgb.b, led[col].b),
+        col);
+}
 
 void rgblight_effect_wave(animation_status_t *anim) {
     uint8_t i, val;
@@ -1371,16 +1397,15 @@ void rgblight_effect_wave(animation_status_t *anim) {
 
     for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
         if (waves[i].pos == 0) {
-            if (rand() <= RGBLIGHT_EFFECT_WAVE_CHANCE) {
+            if (rand() <= RAND_MAX * RGBLIGHT_EFFECT_WAVE_CHANCE) {
                 waves[i].pos = 1;
-                waves[i].intensity = 64 + rand() % (256 - 64);
+                waves[i].intensity = 64 + (rand() % (256 - 64));
                 // waves[i].intensity = 255;
-                break;
             }
         }
     }
 
-
+    uint8_t max_ampli = 0;
     for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
         WaveState *ws = &(waves[i]);
         if (ws->pos == 0) {
@@ -1395,16 +1420,50 @@ void rgblight_effect_wave(animation_status_t *anim) {
         }
         // [0,7]
         uint8_t ampli = ((uint32_t) val) * ws->intensity * 8 / 256 / 256;
-        if (ampli > 0) {
-            // full brightness on second-to-last led
-            sethsv(0, 0, rgblight_config.val, (LED_TYPE *)&led[ampli - 1]);
+        if (max_ampli < ampli) {
+            max_ampli = ampli;
         }
+        // for (uint8_t i = 0; i < ampli; i++) {
+        //     sethsv(0, 0, rgblight_config.val, (LED_TYPE *)&led[i]);
+        // }
         // last = (val % (256 / (max_ampli + 1)) * (max_ampli + 1);
         uint8_t last = ((uint32_t) val) * ws->intensity * 8 / 256 % 256;
-        sethsv(0, 0, last * rgblight_config.val / 255, (LED_TYPE *)&led[ampli]);
-        led[15 - i].g = ws->pos;
+        // uint8_t fade = ws->pos < 128 ? 255 : val;
+        uint8_t fade = 255;
+        add_to_col((HSV) {
+            // rgblight_config.hue + ampli * RGBLIGHT_EFFECT_WAVE_HUE_STEP,
+            0,
+            0, 
+            ((uint32_t) last) * fade * rgblight_config.val / 255 / 255},
+            ampli);
+        // if (ampli >= 1) {
+        //     add_to_col(0, 0, fade * rgblight_config.val / 255, ampli - 1);
+        // }
+        // if (ampli >= 2) {
+        //     add_to_col(0, 0, (255 - (last * rgblight_config.val / 255)) * fade / 255, ampli - 2);
+        // }
+        for (i = 0; i < ampli; i++) {
+            add_to_col((HSV) {
+                0, 
+                0, 
+                fade * rgblight_config.val / 255}, 
+                i);
+        }
         ws->pos++;
     }
+    // for (i = 0; i < max_ampli; i++) {
+    //     RGB rgb = hsv_to_rgb((HSV) {
+    //         rgblight_config.hue + i * RGBLIGHT_EFFECT_WAVE_HUE_STEP,
+    //         0,
+    //         rgblight_config.val / 2
+    //     });
+    //     setrgb_col(
+    //         max(rgb.r, led[i].r),
+    //         max(rgb.g, led[i].g),
+    //         max(rgb.b, led[i].b),
+    //         i);
+        // sethsv(rgblight_config.hue + i * RGBLIGHT_EFFECT_WAVE_HUE_STEP, rgblight_config.sat, rgblight_config.val, (LED_TYPE *)&led[i]);
+    // }
 
     // if (anim->pos < 128) {
     //     // wave comes in
