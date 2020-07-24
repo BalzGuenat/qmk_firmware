@@ -1345,7 +1345,7 @@ const uint8_t rgblight_effect_wave_table[] PROGMEM = {
 
 static const int wave_table_scale = 256 / sizeof(rgblight_effect_wave_table);
 #define RGBLIGHT_EFFECT_WAVE_MAX 4
-#define RGBLIGHT_EFFECT_WAVE_CHANCE 0x10
+#define RGBLIGHT_EFFECT_WAVE_CHANCE 0x80
 
 typedef struct PACKED {
     uint8_t pos;
@@ -1355,13 +1355,12 @@ typedef struct PACKED {
 static WaveState waves[RGBLIGHT_EFFECT_WAVE_MAX];
 
 void rgblight_effect_wave(animation_status_t *anim) {
-    WaveState ws;
-    uint8_t i, max_ampli, ampli, val, last;
+    uint8_t i, val;
     // uint8_t       i, ampli, val, last, hue, hue_step;
     // uint8_t       lights[16];
 
     // hue = rgblight_config.hue;
-    // hue_step = 4;
+    // hue_step = 12;
 
     // Set all the LEDs to 0
     for (i = 0; i < 16; i++) {
@@ -1371,10 +1370,11 @@ void rgblight_effect_wave(animation_status_t *anim) {
     }
 
     for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
-        if (waves[i].intensity == 0) {
+        if (waves[i].pos == 0) {
             if (rand() <= RGBLIGHT_EFFECT_WAVE_CHANCE) {
                 waves[i].pos = 1;
-                waves[i].intensity = rand();
+                waves[i].intensity = 64 + rand() % (256 - 64);
+                // waves[i].intensity = 255;
                 break;
             }
         }
@@ -1382,22 +1382,28 @@ void rgblight_effect_wave(animation_status_t *anim) {
 
 
     for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
-        ws = waves[i];
-        if (ws.pos == 0) {
+        WaveState *ws = &(waves[i]);
+        if (ws->pos == 0) {
             continue;
         }
-        // maximum amplitude (led column) this wave will reach
+        if (ws->pos < 128) {
+            // [0,255]
+            val = pgm_read_byte(&rgblight_effect_wave_table[ws->pos * 2 / wave_table_scale]);
+        } else {
+            // [0,255]
+            val = pgm_read_byte(&rgblight_effect_wave_table[(255 - ws->pos) * 2 / wave_table_scale]);
+        }
         // [0,7]
-        max_ampli = ws.intensity / (256/8);
-        // [0,255]
-        val = pgm_read_byte(&rgblight_effect_wave_table[ws.pos / wave_table_scale]);
-        // [0,6]
-        ampli = val * max_ampli / 256;
-        last = val % (256 / max_ampli);
-        led[ampli].r = 255;
-        led[ampli].g = 255;
-        led[ampli].b = 255;
-        ws.pos++;
+        uint8_t ampli = ((uint32_t) val) * ws->intensity * 8 / 256 / 256;
+        if (ampli > 0) {
+            // full brightness on second-to-last led
+            sethsv(0, 0, rgblight_config.val, (LED_TYPE *)&led[ampli - 1]);
+        }
+        // last = (val % (256 / (max_ampli + 1)) * (max_ampli + 1);
+        uint8_t last = ((uint32_t) val) * ws->intensity * 8 / 256 % 256;
+        sethsv(0, 0, last * rgblight_config.val / 255, (LED_TYPE *)&led[ampli]);
+        led[15 - i].g = ws->pos;
+        ws->pos++;
     }
 
     // if (anim->pos < 128) {
