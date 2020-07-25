@@ -1346,7 +1346,7 @@ const uint8_t rgblight_effect_wave_table[] PROGMEM = {
 static const int wave_table_scale = 256 / sizeof(rgblight_effect_wave_table);
 #define RGBLIGHT_EFFECT_WAVE_MAX 3
 #define RGBLIGHT_EFFECT_WAVE_CHANCE 1 / 90
-#define RGBLIGHT_EFFECT_WAVE_HUE_STEP 16
+#define RGBLIGHT_EFFECT_WAVE_HUE_STEP -12
 
 typedef struct PACKED {
     // pos == 9 means wave is inactive
@@ -1399,8 +1399,9 @@ void rgblight_effect_wave(animation_status_t *anim) {
         if (waves[i].pos == 0) {
             if (rand() <= RAND_MAX * RGBLIGHT_EFFECT_WAVE_CHANCE) {
                 waves[i].pos = 1;
-                waves[i].intensity = 64 + (rand() % (256 - 64));
-                // waves[i].intensity = 255;
+                // waves[i].intensity = 64 + (rand() % (256 - 64));
+                uint8_t rnd;
+                waves[i].intensity = (rnd = rand()) >= 64 ? rnd : 255; // values under 64 are maxed
             }
         }
     }
@@ -1428,12 +1429,11 @@ void rgblight_effect_wave(animation_status_t *anim) {
         // }
         // last = (val % (256 / (max_ampli + 1)) * (max_ampli + 1);
         uint8_t last = ((uint32_t) val) * ws->intensity * 8 / 256 % 256;
-        uint8_t fade = ws->pos < 128 ? 255 : val;
-        // uint8_t fade = 255;
+        // uint8_t fade = ws->pos < 128 ? 255 : val;
+        uint8_t fade = pgm_read_byte(&rgblight_effect_wave_table[(255 - ws->pos) / wave_table_scale]);;
         add_to_col((HSV) {
-            // rgblight_config.hue + ampli * RGBLIGHT_EFFECT_WAVE_HUE_STEP,
-            0,
-            0, 
+            rgblight_config.hue + ampli * RGBLIGHT_EFFECT_WAVE_HUE_STEP,
+            rgblight_config.sat, 
             ((uint32_t) last) * fade * rgblight_config.val / 255 / 255},
             ampli);
         // if (ampli >= 1) {
@@ -1444,8 +1444,8 @@ void rgblight_effect_wave(animation_status_t *anim) {
         // }
         for (uint8_t j = 0; j < ampli; j++) {
             add_to_col((HSV) {
-                0, 
-                0, 
+                rgblight_config.hue + j * RGBLIGHT_EFFECT_WAVE_HUE_STEP, 
+                rgblight_config.sat, 
                 fade * rgblight_config.val / 255}, 
                 j);
         }
