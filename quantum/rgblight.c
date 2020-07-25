@@ -1344,8 +1344,8 @@ const uint8_t rgblight_effect_wave_table[] PROGMEM = {
 };
 
 static const int wave_table_scale = 256 / sizeof(rgblight_effect_wave_table);
-#define RGBLIGHT_EFFECT_WAVE_MAX 2
-#define RGBLIGHT_EFFECT_WAVE_CHANCE 1 / 128
+#define RGBLIGHT_EFFECT_WAVE_MAX 3
+#define RGBLIGHT_EFFECT_WAVE_CHANCE 1 / 90
 #define RGBLIGHT_EFFECT_WAVE_HUE_STEP 16
 
 typedef struct PACKED {
@@ -1381,7 +1381,7 @@ void add_to_col(HSV hsv, uint8_t col) {
 }
 
 void rgblight_effect_wave(animation_status_t *anim) {
-    uint8_t i, val;
+    uint8_t val;
     // uint8_t       i, ampli, val, last, hue, hue_step;
     // uint8_t       lights[16];
 
@@ -1389,13 +1389,13 @@ void rgblight_effect_wave(animation_status_t *anim) {
     // hue_step = 12;
 
     // Set all the LEDs to 0
-    for (i = 0; i < 16; i++) {
+    for (uint8_t i = 0; i < 16; i++) {
         led[i].r = 0;
         led[i].g = 0;
         led[i].b = 0;
     }
 
-    for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
+    for (uint8_t i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
         if (waves[i].pos == 0) {
             if (rand() <= RAND_MAX * RGBLIGHT_EFFECT_WAVE_CHANCE) {
                 waves[i].pos = 1;
@@ -1406,7 +1406,7 @@ void rgblight_effect_wave(animation_status_t *anim) {
     }
 
     uint8_t max_ampli = 0;
-    for (i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
+    for (uint8_t i = 0; i < RGBLIGHT_EFFECT_WAVE_MAX; i++) {
         WaveState *ws = &(waves[i]);
         if (ws->pos == 0) {
             continue;
@@ -1428,8 +1428,8 @@ void rgblight_effect_wave(animation_status_t *anim) {
         // }
         // last = (val % (256 / (max_ampli + 1)) * (max_ampli + 1);
         uint8_t last = ((uint32_t) val) * ws->intensity * 8 / 256 % 256;
-        // uint8_t fade = ws->pos < 128 ? 255 : val;
-        uint8_t fade = 255;
+        uint8_t fade = ws->pos < 128 ? 255 : val;
+        // uint8_t fade = 255;
         add_to_col((HSV) {
             // rgblight_config.hue + ampli * RGBLIGHT_EFFECT_WAVE_HUE_STEP,
             0,
@@ -1442,12 +1442,12 @@ void rgblight_effect_wave(animation_status_t *anim) {
         // if (ampli >= 2) {
         //     add_to_col(0, 0, (255 - (last * rgblight_config.val / 255)) * fade / 255, ampli - 2);
         // }
-        for (i = 0; i < ampli; i++) {
+        for (uint8_t j = 0; j < ampli; j++) {
             add_to_col((HSV) {
                 0, 
                 0, 
                 fade * rgblight_config.val / 255}, 
-                i);
+                j);
         }
         ws->pos++;
     }
