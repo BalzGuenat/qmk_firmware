@@ -46,8 +46,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define MATRIX_COL_PINS_RIGHT { D6, D4, D7, B4, B5, B6, E6, B0 }
 
 /* these two are not actually connected to anything but currently, QMK doesn't support encoders on only the right side */
-#define ENCODERS_PAD_A { F0 }
-#define ENCODERS_PAD_B { F4 }
+#define ENCODERS_PAD_A {  }
+#define ENCODERS_PAD_B {  }
 #define ENCODERS_PAD_A_RIGHT { F6 }
 #define ENCODERS_PAD_B_RIGHT { F7 }
 
