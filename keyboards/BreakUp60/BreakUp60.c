@@ -43,11 +43,13 @@ void keyboard_post_init_kb(void) {
 	if (is_keyboard_left()) {
 		setPinOutput(LED_PIN);
 		writePinHigh(LED_PIN);
+		// detect split state
 		setPinInputHigh(SPLIT_SENSE_PIN);
 		last_split_state = readPin(SPLIT_SENSE_PIN);
 	} else {
 		setPinOutput(LED_PIN);
 		writePinLow(LED_PIN);
+		// pull split sense pin low
 		setPinOutput(SPLIT_SENSE_PIN);
 		writePinLow(SPLIT_SENSE_PIN);
 	}
@@ -55,7 +57,9 @@ void keyboard_post_init_kb(void) {
 
 void matrix_scan_kb(void) {
 	bool split_state = readPin(SPLIT_SENSE_PIN);
+	// writePin(LED_PIN, split_state);
 	if (split_state != last_split_state) {
+		// TODO: needs debouncing
 		last_split_state = split_state;
 		apart() ? onSplit() : onMerge();
 	}
