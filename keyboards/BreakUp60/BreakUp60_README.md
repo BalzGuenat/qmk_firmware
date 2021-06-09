@@ -55,7 +55,7 @@ It can be programmed in the normal keymap.
 
 ### Flashing
 
-**It is strongly recommended to disconnect the halves before flashing!**
+**Warning! It is critical to disconnect the halves before flashing!** Not doing so might corrupt the bootloader.
 
 Fuses:
 ```bash
@@ -86,22 +86,22 @@ This is done over USB, the same way as with any other QMK keyboard.
 ## Assembly
 
 1. Solder any remaining components to the PCB.
-2. Install stabilizers.
-3. Glue the crosslink connectors into the case. The pins go on the left half. The contact pads on the right.
-4. Solder the wires for the crosslink connectors to the PCB
-5. Screw the PCB to the case.
-6. Solder the crosslink wires to the connectors.
-7. Use an SPI to flash the bootloader and QMK firmware. After the first time, the keyboard can be flashed without a SPI via USB.
+2. Use an SPI to flash the bootloader and QMK firmware. After the first time, the keyboard can be flashed without a SPI via USB.
+3. Install stabilizers.
+4. Glue the pogo connectors into the case. The pins go on the left half where they are better protected. The contact pads on the right.
+5. Solder the wires for the crosslink connectors to the PCB.
+6. Place the PCB into the case and screw it in place.
+7. Solder the crosslink wires to the connectors.
 
 ## Hardware Description
 
-Each half has an Atmel ATMega32U4.
+Each half has its own Atmel ATMega32U4 controller.
 In general, the matrices / pin assignments between the halves are very different but some key pins have the same assignment.
 The pins for SPI programming, USB and crosslink are broken out to through-hole pads.
 
 ### Handedness Detection
 
-Pin `XXX` is used to detect handedness.
+Pin `B7` is used to detect handedness.
 On the left half, the pin is pulled high; on the right half, it is pulled low.
 
 The `UVBUS` pin is only connected on the left MC and can be used as an alternative to detect handedness.
@@ -136,7 +136,9 @@ Pins are counted from the top, i.e. from the number row downwards.
 |6|`SENS`|
 
 The `SENS` pin on the pogo connector is used to detect whether the halves are together or apart.
-See the functions `together()` and `apart()`.
+It is weakly pulled high by the left half and strongly pulled low by the right.
+When the left half reads a low value on the pin, it means the halves are pushed together.
+See the functions `together()` and `apart()` on how to use this feature.
 
 ## Possible Improvements, Enhancements, Next Steps
 
@@ -145,6 +147,8 @@ See the functions `together()` and `apart()`.
 Instead of connecting the pogo connector by soldering wires to the PCB, a small plug connector and header could be used.
 
 ### Debounce Sense Pin
+
+This should improve the experience of switching modes.
 
 ### Improve Case
 
